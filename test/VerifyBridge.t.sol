@@ -2,15 +2,15 @@
 pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
-import "contracts/Oracle.sol";
+import "contracts/VerifyBridge.sol";
 import "contracts/TUProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-contract OracleTest is Test {
+contract VerifyBridgeTest is Test {
     address proxyOwner = makeAddr("proxyOwner");
     address accessControlAdmin = makeAddr("accessControlAdmin");
     address requester = makeAddr("requester");
     address computer = makeAddr("computer");
-    Oracle oracle;
+    VerifyBridge verifyBridge;
 
     error TaskAlreadyCompleted(uint taskId);
     error InvalidProof(uint id, bytes32 commitedResult);
@@ -22,14 +22,14 @@ contract OracleTest is Test {
         console.log("accessControlAdmin", accessControlAdmin);
         console.log("requester", requester);
         console.log("computer", computer);
-        address logic = address(new Oracle());
-        oracle = Oracle(
+        address logic = address(new VerifyBridge());
+        verifyBridge = VerifyBridge(
             address(
                 new TUProxy(
                     logic,
                     proxyOwner,
                     abi.encodeCall(
-                        Oracle.initialize, (accessControlAdmin, requester, computer)
+                        VerifyBridge.initialize, (accessControlAdmin, requester, computer)
                     )
                 )
             )
@@ -38,11 +38,11 @@ contract OracleTest is Test {
 
     // 权限和变量检测
     function test_check() public view {
-        require(oracle.hasRole(oracle.DEFAULT_ADMIN_ROLE(), accessControlAdmin));
-        require(oracle.hasRole(oracle.REQUESTER_ROLE(), requester));
-        require(oracle.hasRole(oracle.COMPUTER_ROLE(), computer));
+        require(verifyBridge.hasRole(verifyBridge.DEFAULT_ADMIN_ROLE(), accessControlAdmin));
+        require(verifyBridge.hasRole(verifyBridge.REQUESTER_ROLE(), requester));
+        require(verifyBridge.hasRole(verifyBridge.COMPUTER_ROLE(), computer));
 
-        require(oracle.nextTaskId() == 1);
+        require(verifyBridge.nextTaskId() == 1);
     }
 
     // 由requester提交一个计算请求
@@ -51,14 +51,14 @@ contract OracleTest is Test {
         bytes32 result = keccak256(abi.encodePacked("answer1"));
         bytes32 inputData = keccak256(abi.encode(taskId, result));
 
-        vm.expectEmit(address(oracle));
-        emit Oracle.TaskCreated(1, inputData); // 设置预期event
+        vm.expectEmit(address(verifyBridge));
+        emit VerifyBridge.TaskCreated(1, inputData); // 设置预期event
 
         vm.startPrank(requester);
-        oracle.requestCompute(inputData, 30 days); // 发起请求
+        verifyBridge.requestCompute(inputData, 30 days); // 发起请求
         vm.stopPrank();
 
-        require(oracle.nextTaskId() == 2);
+        require(verifyBridge.nextTaskId() == 2);
     }
 
     // 在请求之后，由computer提交一个计算结果
@@ -66,17 +66,17 @@ contract OracleTest is Test {
         test_requestCompute();
 
         bytes32 answer = keccak256(abi.encodePacked("answer1"));
-        (,bytes32 inputDataWanted,,) = oracle.tasks(1);
+        (,bytes32 inputDataWanted,,) = verifyBridge.tasks(1);
         console.logBytes32(inputDataWanted);
 
-        vm.expectEmit(address(oracle));
-        emit Oracle.TaskAccepted(1, inputDataWanted, answer); // 设置预期event
+        vm.expectEmit(address(verifyBridge));
+        emit VerifyBridge.TaskAccepted(1, inputDataWanted, answer); // 设置预期event
 
         vm.startPrank(computer);
-        oracle.submitResult(1, answer); // 提交结果
+        verifyBridge.submitResult(1, answer); // 提交结果
         vm.stopPrank();
 
-        (,,bytes32 resultAfterSubmit,) = oracle.tasks(1);
+        (,,bytes32 resultAfterSubmit,) = verifyBridge.tasks(1);
         require(resultAfterSubmit != bytes32(0));
     }
 
@@ -91,7 +91,7 @@ contract OracleTest is Test {
         vm.expectPartialRevert(TaskExpired.selector);
 
         vm.startPrank(computer);
-        oracle.submitResult(1, bytes32("1"));
+        verifyBridge.submitResult(1, bytes32("1"));
         vm.stopPrank();
     }
 
@@ -101,7 +101,7 @@ contract OracleTest is Test {
         vm.expectPartialRevert(TaskAlreadyCompleted.selector);
 
         vm.startPrank(computer);
-        oracle.submitResult(1, bytes32("1"));
+        verifyBridge.submitResult(1, bytes32("1"));
         vm.stopPrank();
     }
 
@@ -111,7 +111,7 @@ contract OracleTest is Test {
         vm.expectPartialRevert(InvalidProof.selector);
 
         vm.startPrank(computer);
-        oracle.submitResult(1, bytes32("1"));
+        verifyBridge.submitResult(1, bytes32("1"));
         vm.stopPrank();
     }
 
@@ -121,7 +121,7 @@ contract OracleTest is Test {
         vm.expectPartialRevert(InvalidTaskId.selector);
 
         vm.startPrank(computer);
-        oracle.submitResult(2, bytes32("1"));
+        verifyBridge.submitResult(2, bytes32("1"));
         vm.stopPrank();
     }
 
@@ -131,17 +131,17 @@ contract OracleTest is Test {
         vm.expectPartialRevert(InvalidTaskId.selector);
 
         vm.startPrank(computer);
-        oracle.submitResult(3, bytes32("1"));
+        verifyBridge.submitResult(3, bytes32("1"));
         vm.stopPrank();
     }
 
     // proxy升级
     function test_upgrade() public {
-        // require(TransparentUpgradeableProxy(address(oracle))._proxydmin() == proxyAdmin, "not admin");
-        address newLogic = address(new Oracle());
+        // require(TransparentUpgradeableProxy(address(VerifyBridge))._proxydmin() == proxyAdmin, "not admin");
+        address newLogic = address(new VerifyBridge());
 
         vm.startPrank(proxyOwner);
-        ProxyAdmin(_getAdminAddress(address(oracle))).upgradeAndCall(ITransparentUpgradeableProxy(address(oracle)), newLogic, bytes(""));
+        ProxyAdmin(_getAdminAddress(address(verifyBridge))).upgradeAndCall(ITransparentUpgradeableProxy(address(verifyBridge)), newLogic, bytes(""));
         vm.stopPrank();
     }
 

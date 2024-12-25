@@ -5,7 +5,7 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import {IOracle} from "contracts/interfaces/IOracle.sol";
+import {IVerifyBridge} from "contracts/interfaces/IVerifyBridge.sol";
 
 struct Task {
     uint id;
@@ -14,7 +14,7 @@ struct Task {
     uint expiration;
 }
 
-contract Oracle is IOracle, Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
+contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     bytes32 public constant REQUESTER_ROLE = keccak256("REQUESTER_ROLE");
     bytes32 public constant COMPUTER_ROLE = keccak256("COMPUTER_ROLE");
 
