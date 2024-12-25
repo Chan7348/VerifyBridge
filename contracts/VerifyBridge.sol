@@ -18,10 +18,10 @@ contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable,
     bytes32 public constant REQUESTER_ROLE = keccak256("REQUESTER_ROLE");
     bytes32 public constant COMPUTER_ROLE = keccak256("COMPUTER_ROLE");
 
-    mapping(uint256 => Task) public tasks;
-    uint256 public nextTaskId;
+    mapping(address => mapping(uint256 => Task)) public tasks;
+    mapping(address => uint256) public nextTaskId;
 
-    event TaskCreated(uint256 indexed taskId, bytes32 inputData);
+    event TaskCreated(address indexed requester, uint256 indexed taskId, bytes32 inputData);
     event TaskAccepted(uint256 indexed taskId, bytes32 inputData, bytes32 result);
 
     error TaskAlreadyCompleted(uint256 taskId);
@@ -38,29 +38,28 @@ contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable,
         _grantRole(REQUESTER_ROLE, requester);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(COMPUTER_ROLE, computer);
-        nextTaskId = 1;
     }
 
     function requestCompute(bytes32 inputData, uint256 lifecycle) external onlyRole(REQUESTER_ROLE) nonReentrant() {
-        tasks[nextTaskId] = Task({
-            id: nextTaskId,
+        tasks[msg.sender][nextTaskId[msg.sender]] = Task({
+            id: nextTaskId[msg.sender],
             inputData: inputData,
             hashResult: bytes32(0),
             expiration: block.timestamp + lifecycle
         });
 
-        emit TaskCreated(nextTaskId, inputData);
-        nextTaskId++;
+        emit TaskCreated(msg.sender, nextTaskId[msg.sender], inputData);
+        nextTaskId[msg.sender]++;
     }
 
-    function submitResult(uint256 taskId, bytes32 result) external onlyRole(COMPUTER_ROLE) nonReentrant() {
-        require(taskId < nextTaskId, InvalidTaskId(taskId, nextTaskId));
+    function submitResult(address requester, uint256 taskId, bytes32 result) external onlyRole(COMPUTER_ROLE) nonReentrant() {
+        require(taskId < nextTaskId[requester], InvalidTaskId(taskId, nextTaskId[requester]));
 
-        Task memory task = tasks[taskId];
+        Task memory task = tasks[requester][taskId];
         require(task.expiration >= block.timestamp, TaskExpired(taskId));
         require(task.hashResult == bytes32(0), TaskAlreadyCompleted(taskId));
         require(_isValid(taskId, result, task.inputData), InvalidProof(taskId, result));
-        tasks[taskId].hashResult = result;
+        tasks[requester][taskId].hashResult = result;
 
         emit TaskAccepted(taskId, task.inputData, result);
     }
