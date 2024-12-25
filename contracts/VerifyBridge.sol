@@ -21,8 +21,8 @@ contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable,
     mapping(address => mapping(uint256 => Task)) public tasks;
     mapping(address => uint256) public nextTaskId;
 
-    event TaskCreated(address indexed requester, uint256 indexed taskId, bytes32 indexed inputData);
-    event TaskAccepted(uint256 indexed taskId, bytes32 indexed inputData, bytes32 indexed result);
+    event TaskCreated(address requester, uint256 taskId, bytes32 inputData);
+    event TaskAccepted(uint256 taskId, bytes32 inputData, bytes32 result);
 
     error TaskAlreadyCompleted(uint256 taskId);
     error InvalidProof(uint256 id, bytes32 commitedResult);
@@ -71,4 +71,4 @@ contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable,
 }
 
 
-// keccak256(abi.encode(id + result)) = inputData
+// keccak256(abi.encode(id, result)) = inputData

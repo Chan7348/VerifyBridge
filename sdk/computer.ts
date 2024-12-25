@@ -1,4 +1,3 @@
-import { Address } from './../typechain-types/@openzeppelin/contracts/utils/Address';
 import { BigNumberish, BytesLike, ethers } from "ethers";
 import { VerifyBridge } from "../typechain-types";
 import { VerifyBridge__factory } from "../typechain-types";
@@ -34,11 +33,15 @@ export class Computer {
         console.log("Latest block:", latestBlock);
 
         const filter = this.contract.filters.TaskCreated();
-        // 检查最新的10个块
-        const events = await this.contract.queryFilter(filter, latestBlock - 10, latestBlock);
-
+        // 检查最新的100个块
+        const events = await this.contract.queryFilter(filter, 7351272, latestBlock);
+        console.log(`events number: ${events.length}`)
         for (const event of events) {
-            const { requester, taskId, inputData } = event.args;
+            const abicoder = new ethers.AbiCoder();
+            const decoded = abicoder.decode(["address", "uint256", "bytes32"], event.data);
+            const requester = decoded[0];
+            const taskId = decoded[1];
+            const inputData = decoded[2];
             console.log(`TaskCreated Event Detected - Requester: ${requester}, TaskID: ${taskId}, InputData: ${inputData}`);
 
             // Execute task
@@ -49,8 +52,11 @@ export class Computer {
     private async executeTask(requester: ethers.AddressLike, taskId: BigNumberish, inputData: string): Promise<void> {
         console.log(`Executing task for TaskID: ${taskId}`);
         try {
-            const result = this.compute();
-
+            const result = this.compute("1");
+            console.log(`Task ${taskId} computed with result: ${result}`);
+            const abicoder = new ethers.AbiCoder();
+            const inputData = ethers.keccak256(abicoder.encode(["uint256", "bytes32"], [taskId, result]));
+            console.log("inputData:", inputData);
             const tx = await this.contract.submitResult(requester, taskId, result);
             await tx.wait();
             console.log(`Task ${taskId} successfully submitted with result: ${result}`);
@@ -59,7 +65,8 @@ export class Computer {
         }
     }
 
-    private compute(): BytesLike {
-        return ethers.keccak256("");
+    private compute(rawData: string): BytesLike {
+        // return ethers.encodeBytes32String("test1");
+        return ethers.keccak256(ethers.toUtf8Bytes(rawData));
     }
 }
