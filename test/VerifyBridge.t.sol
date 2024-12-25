@@ -12,10 +12,10 @@ contract VerifyBridgeTest is Test {
     address computer = makeAddr("computer");
     VerifyBridge verifyBridge;
 
-    error TaskAlreadyCompleted(uint taskId);
-    error InvalidProof(uint id, bytes32 commitedResult);
-    error InvalidTaskId(uint id, uint nextTaskId);
-    error TaskExpired(uint id);
+    error TaskAlreadyCompleted(uint256 taskId);
+    error InvalidProof(uint256 id, bytes32 commitedResult);
+    error InvalidTaskId(uint256 id, uint256 nextTaskId);
+    error TaskExpired(uint256 id);
 
     function setUp() public {
         console.log("proxyOwner", proxyOwner);
@@ -47,7 +47,7 @@ contract VerifyBridgeTest is Test {
 
     // 由requester提交一个计算请求
     function test_requestCompute() public {
-        uint taskId =1;
+        uint256 taskId =1;
         bytes32 result = keccak256(abi.encodePacked("answer1"));
         bytes32 inputData = keccak256(abi.encode(taskId, result));
 
