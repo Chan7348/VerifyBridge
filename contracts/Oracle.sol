@@ -26,7 +26,7 @@ contract Oracle is IOracle, Initializable, AccessControlUpgradeable, ReentrancyG
 
     error TaskAlreadyCompleted(uint taskId);
     error InvalidProof(uint id, bytes32 commitedResult);
-    error InvalidTaskId();
+    error InvalidTaskId(uint id, uint nextTaskId);
     error TaskExpired(uint id);
 
     constructor() {
@@ -38,6 +38,7 @@ contract Oracle is IOracle, Initializable, AccessControlUpgradeable, ReentrancyG
         _grantRole(REQUESTER_ROLE, requester);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(COMPUTER_ROLE, computer);
+        nextTaskId = 1;
     }
 
     function requestCompute(bytes32 inputData, uint lifecycle) external onlyRole(REQUESTER_ROLE) nonReentrant() {
@@ -53,7 +54,7 @@ contract Oracle is IOracle, Initializable, AccessControlUpgradeable, ReentrancyG
     }
 
     function submitResult(uint taskId, bytes32 result) external onlyRole(COMPUTER_ROLE) nonReentrant() {
-        require(taskId < nextTaskId, InvalidTaskId());
+        require(taskId < nextTaskId, InvalidTaskId(taskId, nextTaskId));
 
         Task memory task = tasks[taskId];
         require(task.expiration >= block.timestamp, TaskExpired(taskId));
@@ -71,4 +72,4 @@ contract Oracle is IOracle, Initializable, AccessControlUpgradeable, ReentrancyG
 }
 
 
-// keccak256(id + result) = inputData
+// keccak256(abi.encode(id + result)) = inputData
