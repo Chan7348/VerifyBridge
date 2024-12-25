@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import { VerifyBridge } from "../typechain-types";
 import { VerifyBridge__factory } from "../typechain-types";
 
-export class VerifyBridgeSDK {
+export class Requester {
     private provider: ethers.JsonRpcProvider;
     private contract: VerifyBridge;
     private signer: ethers.Signer;
@@ -40,6 +40,7 @@ export class VerifyBridgeSDK {
 
             await tx.wait();
             console.log(`Task ${nextTaskId} has been successfully created.`);
+            console.log(`Tx: ${tx.hash}. BlockNumber: ${tx.blockNumber}`);
             return tx;
         } catch (error) {
             console.error("Error during compute request:", error);
