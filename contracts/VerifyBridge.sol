@@ -8,26 +8,26 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 import {IVerifyBridge} from "contracts/interfaces/IVerifyBridge.sol";
 
 struct Task {
-    uint id;
+    uint256 id;
     bytes32 inputData;
     bytes32 hashResult;
-    uint expiration;
+    uint256 expiration;
 }
 
 contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     bytes32 public constant REQUESTER_ROLE = keccak256("REQUESTER_ROLE");
     bytes32 public constant COMPUTER_ROLE = keccak256("COMPUTER_ROLE");
 
-    mapping(uint => Task) public tasks;
-    uint public nextTaskId;
+    mapping(uint256 => Task) public tasks;
+    uint256 public nextTaskId;
 
-    event TaskCreated(uint indexed taskId, bytes32 inputData);
-    event TaskAccepted(uint indexed taskId, bytes32 inputData, bytes32 result);
+    event TaskCreated(uint256 indexed taskId, bytes32 inputData);
+    event TaskAccepted(uint256 indexed taskId, bytes32 inputData, bytes32 result);
 
-    error TaskAlreadyCompleted(uint taskId);
-    error InvalidProof(uint id, bytes32 commitedResult);
-    error InvalidTaskId(uint id, uint nextTaskId);
-    error TaskExpired(uint id);
+    error TaskAlreadyCompleted(uint256 taskId);
+    error InvalidProof(uint256 id, bytes32 commitedResult);
+    error InvalidTaskId(uint256 id, uint256 nextTaskId);
+    error TaskExpired(uint256 id);
 
     constructor() {
         _disableInitializers();
@@ -41,7 +41,7 @@ contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable,
         nextTaskId = 1;
     }
 
-    function requestCompute(bytes32 inputData, uint lifecycle) external onlyRole(REQUESTER_ROLE) nonReentrant() {
+    function requestCompute(bytes32 inputData, uint256 lifecycle) external onlyRole(REQUESTER_ROLE) nonReentrant() {
         tasks[nextTaskId] = Task({
             id: nextTaskId,
             inputData: inputData,
@@ -53,7 +53,7 @@ contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable,
         nextTaskId++;
     }
 
-    function submitResult(uint taskId, bytes32 result) external onlyRole(COMPUTER_ROLE) nonReentrant() {
+    function submitResult(uint256 taskId, bytes32 result) external onlyRole(COMPUTER_ROLE) nonReentrant() {
         require(taskId < nextTaskId, InvalidTaskId(taskId, nextTaskId));
 
         Task memory task = tasks[taskId];
@@ -66,7 +66,7 @@ contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable,
     }
 
 
-    function _isValid(uint taskId, bytes32 hashResult, bytes32 inputData) internal pure returns (bool) {
+    function _isValid(uint256 taskId, bytes32 hashResult, bytes32 inputData) internal pure returns (bool) {
         return keccak256(abi.encode(taskId, hashResult)) == inputData;
     }
 }
