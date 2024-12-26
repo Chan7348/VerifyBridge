@@ -7,22 +7,20 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 
 import {IVerifyBridge} from "contracts/interfaces/IVerifyBridge.sol";
 
-
 struct Task {
     bytes32 inputData;
     bool accepted;
-    // uint256 expiration;
 }
 
 contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     bytes32 public constant REQUESTER_ROLE = keccak256("REQUESTER_ROLE");
     bytes32 public constant COMPUTER_ROLE = keccak256("COMPUTER_ROLE");
 
-    mapping(address requester => mapping(uint256 id => Task)) public tasks;
-    mapping(address => uint256) public nextTaskId;
+    mapping(uint256 id => Task) public tasks;
+    uint256 public nextTaskId;
 
-    event TaskCreated(address requester, uint256 taskId, bytes32 inputData);
-    event TaskAccepted(uint256 taskId, bytes32 inputData, bytes32 result);
+    event TaskCreated(uint256 taskId, bytes32 inputData);
+    event TaskAccepted(uint256 taskId);
 
     error TaskAlreadyAccepted(uint256 taskId);
     error InvalidProof(uint256 id, bytes32 commitedResult);
@@ -41,32 +39,29 @@ contract VerifyBridge is IVerifyBridge, Initializable, AccessControlUpgradeable,
     }
 
     function requestCompute(bytes32 inputData) external onlyRole(REQUESTER_ROLE) nonReentrant() {
-        tasks[msg.sender][nextTaskId[msg.sender]] = Task({
+        tasks[nextTaskId] = Task({
             inputData: inputData,
             accepted: false
-            // expiration: block.timestamp + lifecycle
         });
 
-        emit TaskCreated(msg.sender, nextTaskId[msg.sender], inputData);
-        nextTaskId[msg.sender]++;
+        emit TaskCreated(nextTaskId, inputData);
+        nextTaskId++;
     }
 
-    function submitResult(address requester, uint256 taskId, bytes32 result) external onlyRole(COMPUTER_ROLE) nonReentrant() {
-        require(taskId < nextTaskId[requester], InvalidTaskId(taskId, nextTaskId[requester]));
+    function submitResult(uint256 taskId, bytes32 result) external onlyRole(COMPUTER_ROLE) nonReentrant() {
+        require(taskId < nextTaskId, InvalidTaskId(taskId, nextTaskId));
 
-        Task memory task = tasks[requester][taskId];
-        // require(task.expiration >= block.timestamp, TaskExpired(taskId));
+        Task memory task = tasks[taskId];
         require(!task.accepted, TaskAlreadyAccepted(taskId));
         require(_isValid(taskId, result, task.inputData), InvalidProof(taskId, result));
-        tasks[requester][taskId].accepted = true;
+        tasks[taskId].accepted = true;
 
-        emit TaskAccepted(taskId, task.inputData, result);
+        emit TaskAccepted(taskId);
     }
 
     function _isValid(uint256 taskId, bytes32 hashResult, bytes32 inputData) internal pure returns (bool) {
         return keccak256(abi.encode(taskId, hashResult)) == inputData;
     }
 }
-
 
 // keccak256(abi.encode(id, result)) = inputData

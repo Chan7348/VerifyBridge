@@ -16,7 +16,7 @@ export class Requester {
 
     public async getNextTaskId(): Promise<bigint> {
         try {
-            const nextTaskId = await this.contract.nextTaskId(await this.signer.getAddress());
+            const nextTaskId = await this.contract.nextTaskId();
             return nextTaskId;
         } catch (error) {
             console.error("Error fetching next task ID:", error);
@@ -24,9 +24,10 @@ export class Requester {
         }
     }
 
-    public async request(rawData: string, lifecycle: number): Promise<ethers.ContractTransactionResponse> {
+    public async request(rawData: string): Promise<ethers.ContractTransactionResponse> {
         try {
             const nextTaskId = await this.getNextTaskId();
+            console.log("get id done!, nextTaskId: ", nextTaskId);
             const rawDataHash = ethers.keccak256(ethers.toUtf8Bytes(rawData));
             const abiEncoder = ethers.AbiCoder.defaultAbiCoder();
             const inputData = ethers.keccak256(
@@ -36,7 +37,7 @@ export class Requester {
                 )
             );
 
-            const tx = await this.contract.requestCompute(inputData, lifecycle);
+            const tx = await this.contract.requestCompute(inputData);
 
             await tx.wait();
             console.log(`Task ${nextTaskId} has been successfully created.`);

@@ -25,8 +25,13 @@
 
 监听智能合约事件来处理计算任务。
 智能合约事件分两种：
-1. Task被创建，open
-2. Task被close
+1. Task被创建，event TaskCreated(address requester, uint256 taskId, bytes32 inputData);
+2. Task被accept，event TaskAccepted(uint256 taskId, bytes32 inputData, bytes32 result);
 
 链下储存数据结构：
-1. suo
+1. (requester+id) => Task(inputData)， 储存所有的任务，便于查找
+2. 队列，(requester+id)数组，用来储存未计算完毕的任务，计算被接受后需要踢出，按顺序计算
+
+
+
+

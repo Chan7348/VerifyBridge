@@ -6,7 +6,7 @@ dotenv.config();
 async function main() {
     try {
         const rpc = process.env.ETHEREUM_SEPOLIA_RPC;
-        const contractAddress = "0x39E1C7168614A6b92f1711221Ac40F4362F344BA";
+        const contractAddress = "0x9e3cDdcf8Ee5322D3674e027FD6504b9eD77a37B";
         const privateKey = process.env.near1;
 
         const requester = new Requester(rpc!, contractAddress, privateKey!);
@@ -15,7 +15,7 @@ async function main() {
         const lifecycle = 30 * 24 * 3600; // 30天
 
         console.log("Publishing a new compute task...");
-        const tx = await requester.request(rawData, lifecycle);
+        const tx = await requester.request(rawData);
 
         console.log("Compute task successfully published!");
         console.log(`Transaction Hash: ${tx.hash}, blocknumber: ${tx.blockNumber}`);
