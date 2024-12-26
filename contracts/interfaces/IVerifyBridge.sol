@@ -5,6 +5,6 @@ import {Task} from "contracts/VerifyBridge.sol";
 
 interface IVerifyBridge {
     function nextTaskId(address) external returns (uint256);
-    function requestCompute(bytes32,uint256) external;
+    function requestCompute(bytes32) external;
     function submitResult(address,uint256,bytes32) external;
 }

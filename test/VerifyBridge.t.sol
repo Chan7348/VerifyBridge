@@ -12,7 +12,7 @@ contract VerifyBridgeTest is Test {
     address computer = makeAddr("computer");
     VerifyBridge verifyBridge;
 
-    error TaskAlreadyCompleted(uint256 taskId);
+    error TaskAlreadyAccepted(uint256 taskId);
     error InvalidProof(uint256 id, bytes32 commitedResult);
     error InvalidTaskId(uint256 id, uint256 nextTaskId);
     error TaskExpired(uint256 id);
@@ -55,7 +55,7 @@ contract VerifyBridgeTest is Test {
         emit VerifyBridge.TaskCreated(requester, 0, inputData); // 设置预期event
 
         vm.startPrank(requester);
-        verifyBridge.requestCompute(inputData, 30 days); // 发起请求
+        verifyBridge.requestCompute(inputData); // 发起请求
         vm.stopPrank();
 
         require(verifyBridge.nextTaskId(requester) == 1);
@@ -66,7 +66,7 @@ contract VerifyBridgeTest is Test {
         test_requestCompute();
 
         bytes32 answer = keccak256(abi.encodePacked("answer1"));
-        (,bytes32 inputDataWanted,,) = verifyBridge.tasks(requester, 0);
+        (bytes32 inputDataWanted,) = verifyBridge.tasks(requester, 0);
         console.logBytes32(inputDataWanted);
 
         vm.expectEmit(address(verifyBridge));
@@ -76,29 +76,29 @@ contract VerifyBridgeTest is Test {
         verifyBridge.submitResult(requester, 0, answer); // 提交结果
         vm.stopPrank();
 
-        (,,bytes32 resultAfterSubmit,) = verifyBridge.tasks(requester, 0);
+        (bytes32 resultAfterSubmit,) = verifyBridge.tasks(requester, 0);
         require(resultAfterSubmit != bytes32(0));
     }
 
 
 
     // 下面是几种常见的submitResult运行时错误
-    function test_submitResult_revert_expired() public {
-        test_requestCompute();
+    // function test_submitResult_revert_expired() public {
+    //     test_requestCompute();
 
-        vm.warp(31 days);
+    //     vm.warp(31 days);
 
-        vm.expectPartialRevert(TaskExpired.selector);
+    //     vm.expectPartialRevert(TaskExpired.selector);
 
-        vm.startPrank(computer);
-        verifyBridge.submitResult(requester, 0, bytes32("1"));
-        vm.stopPrank();
-    }
+    //     vm.startPrank(computer);
+    //     verifyBridge.submitResult(requester, 0, bytes32("1"));
+    //     vm.stopPrank();
+    // }
 
-    function test_submitResult_revert_taskAlreadyCompleted() public {
+    function test_submitResult_revert_taskAlreadyAccepted() public {
         test_submitResult();
 
-        vm.expectPartialRevert(TaskAlreadyCompleted.selector);
+        vm.expectPartialRevert(TaskAlreadyAccepted.selector);
 
         vm.startPrank(computer);
         verifyBridge.submitResult(requester, 0, bytes32("1"));
