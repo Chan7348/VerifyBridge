@@ -80,20 +80,7 @@ contract VerifyBridgeTest is Test {
         require(resultAfterSubmit != bytes32(0));
     }
 
-
-
     // 下面是几种常见的submitResult运行时错误
-    // function test_submitResult_revert_expired() public {
-    //     test_requestCompute();
-
-    //     vm.warp(31 days);
-
-    //     vm.expectPartialRevert(TaskExpired.selector);
-
-    //     vm.startPrank(computer);
-    //     verifyBridge.submitResult(requester, 0, bytes32("1"));
-    //     vm.stopPrank();
-    // }
 
     function test_submitResult_revert_taskAlreadyAccepted() public {
         test_submitResult();
