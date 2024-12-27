@@ -1,4 +1,4 @@
-import { Requester } from "../../sdk/requester";
+import { Requester } from "../sdk/requester";
 import * as dotenv from "dotenv";
 
 dotenv.config();

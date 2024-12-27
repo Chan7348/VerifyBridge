@@ -42,7 +42,7 @@ contract VerifyBridgeTest is Test {
         require(verifyBridge.hasRole(verifyBridge.REQUESTER_ROLE(), requester));
         require(verifyBridge.hasRole(verifyBridge.COMPUTER_ROLE(), computer));
 
-        require(verifyBridge.nextTaskId(requester) == 0);
+        require(verifyBridge.nextTaskId() == 0);
     }
 
     // 由requester提交一个计算请求
@@ -52,13 +52,13 @@ contract VerifyBridgeTest is Test {
         bytes32 inputData = keccak256(abi.encode(taskId, result));
 
         vm.expectEmit(address(verifyBridge));
-        emit VerifyBridge.TaskCreated(requester, 0, inputData); // 设置预期event
+        emit VerifyBridge.TaskCreated(0, inputData); // 设置预期event
 
         vm.startPrank(requester);
         verifyBridge.requestCompute(inputData); // 发起请求
         vm.stopPrank();
 
-        require(verifyBridge.nextTaskId(requester) == 1);
+        require(verifyBridge.nextTaskId() == 1);
     }
 
     // 在请求之后，由computer提交一个计算结果
@@ -66,17 +66,17 @@ contract VerifyBridgeTest is Test {
         test_requestCompute();
 
         bytes32 answer = keccak256(abi.encodePacked("answer1"));
-        (bytes32 inputDataWanted,) = verifyBridge.tasks(requester, 0);
+        (bytes32 inputDataWanted,) = verifyBridge.tasks(0);
         console.logBytes32(inputDataWanted);
 
         vm.expectEmit(address(verifyBridge));
-        emit VerifyBridge.TaskAccepted(0, inputDataWanted, answer); // 设置预期event
+        emit VerifyBridge.TaskAccepted(0); // 设置预期event
 
         vm.startPrank(computer);
-        verifyBridge.submitResult(requester, 0, answer); // 提交结果
+        verifyBridge.submitResult(0, answer); // 提交结果
         vm.stopPrank();
 
-        (bytes32 resultAfterSubmit,) = verifyBridge.tasks(requester, 0);
+        (bytes32 resultAfterSubmit,) = verifyBridge.tasks(0);
         require(resultAfterSubmit != bytes32(0));
     }
 
@@ -101,7 +101,7 @@ contract VerifyBridgeTest is Test {
         vm.expectPartialRevert(TaskAlreadyAccepted.selector);
 
         vm.startPrank(computer);
-        verifyBridge.submitResult(requester, 0, bytes32("1"));
+        verifyBridge.submitResult(0, bytes32("1"));
         vm.stopPrank();
     }
 
@@ -111,7 +111,7 @@ contract VerifyBridgeTest is Test {
         vm.expectPartialRevert(InvalidProof.selector);
 
         vm.startPrank(computer);
-        verifyBridge.submitResult(requester, 0, bytes32("1"));
+        verifyBridge.submitResult(0, bytes32("1"));
         vm.stopPrank();
     }
 
@@ -121,7 +121,7 @@ contract VerifyBridgeTest is Test {
         vm.expectPartialRevert(InvalidTaskId.selector);
 
         vm.startPrank(computer);
-        verifyBridge.submitResult(requester, 1, bytes32("1"));
+        verifyBridge.submitResult(1, bytes32("1"));
         vm.stopPrank();
     }
 
@@ -131,7 +131,7 @@ contract VerifyBridgeTest is Test {
         vm.expectPartialRevert(InvalidTaskId.selector);
 
         vm.startPrank(computer);
-        verifyBridge.submitResult(requester, 3, bytes32("1"));
+        verifyBridge.submitResult(3, bytes32("1"));
         vm.stopPrank();
     }
 
