@@ -24,7 +24,6 @@ export class Computer {
         this.interval = interval;
     }
 
-    // 5s扫一次事件，记录所有TaskCreated事件和TaskAccepted事件
     public startMonitoring() {
         console.log("start monitoring...");
 
@@ -50,50 +49,50 @@ export class Computer {
         });
     }
 
-    public startProcessing() {
+    // loop流程：
+    // 1. 尝试从队列中取出一个任务，如果一直没有任务，等待一段时间后再进入下一个loop重新尝试
+    // 2. 获取任务详情，如果无效任务，删除并continue
+    // 3. 执行计算, 发送交易
+    // 4. 等待任务被 accept之后进入下一个loop
+    public async startProcessing() {
         console.log("start processing...");
 
-        // 添加一个锁，避免并发处理
-        let isProcessing = false;
-
-        setInterval(async () => {
-            if (isProcessing) {
-                return;
-            }
-            isProcessing = true; // 上锁
-
+        while (true) { // 无限循环处理任务
             try {
                 // 从队列中取出一个任务
                 const id = Array.from(this.idQueue.values())[0];
                 if (!id) {
-                    isProcessing = false; // 解锁
-                    return;
+                    console.log("No tasks in the queue. Waiting...");
+                    await new Promise((resolve) => setTimeout(resolve, this.interval)); // 等待一段时间再检查, 节省资源
+                    continue;
                 }
 
-                // 从任务状态映射中获取任务详情
+                // 获取任务详情
                 const task = this.taskStateMap.get(id);
                 if (!task || task.state !== 1) {
                     console.log(`Task ${id} is not in a valid state for processing.`);
                     this.idQueue.delete(id); // 从队列中移除无效任务
-                    isProcessing = false; // 解锁
-                    return;
+                    continue;
                 }
 
+                console.log(`Processing Task: TaskID=${id}, InputData=${task.inputData}`);
+
+                // 执行计算, 发送交易
                 await this.sendTx(id, this.compute());
                 console.log(`Task ${id} successfully sent to the chain.`);
 
+                // 等待任务被 accept
                 const accepted = await this.waitForTaskAccepted(id);
                 if (!accepted) {
                     console.error(`Task ${id} has not been accepted.`);
                     this.idQueue.add(id); // 重新加入队列
                 }
+
                 console.log("--------------------------------");
             } catch (err) {
                 console.error(`Error processing Task: ${err}`);
-            } finally {
-                isProcessing = false; // 解锁
             }
-        }, this.interval);
+        }
     }
 
     public async sendTx(id: bigint, result: string): Promise<void> {
@@ -106,26 +105,27 @@ export class Computer {
         return ethers.keccak256(ethers.toUtf8Bytes("1"));
     }
 
+    // 检查本地Map中的任务状态，如果任务已被接受，返回true，否则阻塞
     private async waitForTaskAccepted(id: bigint, timeout = 30000, interval = 2000): Promise<boolean> {
         const startTime = Date.now();
 
-        return new Promise((resolve) => {
-            const checkTaskAccepted = () => {
-                const task = this.taskStateMap.get(id);
-                if (task && task.state === 2) {
-                    resolve(true);
-                    return;
-                }
-
-                if (Date.now() - startTime > timeout) {
-                    resolve(false);
-                    return;
-                }
-
-                setTimeout(checkTaskAccepted, interval);
+        while (true) {
+            // 检查任务状态
+            const task = this.taskStateMap.get(id);
+            if (task && task.state === 2) {
+                console.log(`Task ${id} has been accepted.`);
+                return true; // 任务已被接受，返回 true
             }
-            checkTaskAccepted();
-        })
+
+            // 检查是否超时
+            if (Date.now() - startTime > timeout) {
+                console.log(`Timeout reached while waiting for Task ${id} to be accepted.`);
+                return false; // 超时，返回 false
+            }
+
+            // 等待一段时间再继续检查
+            await new Promise((resolve) => setTimeout(resolve, interval));
+        }
     }
 }
 
